@@ -8,10 +8,13 @@ db = 'sqlite:///nodes.db'
 # How long to wait for node to come back before notifying it's owner
 notify_timeout = 3600  # one hour
 
-# Whitelist mode
+# Opt-In mode
+# This should be set enabled with True during testing !!!
 # If enabled, nodes must manually be whitelisted in the database by setting
-# their ignore value to 0 instead of NULL. This is useful for testing.
-whitelisting = False
+# their ignore value to 0 instead of the default NULL.
+# If opt_in is disabled (False) notifications are sent to all offline 
+# nodes where a valid contact is given
+opt_in = True
 
 # Long notification text, used for example for mails
 # This isn't actually used, but shortens the definition in the plugin
