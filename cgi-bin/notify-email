@@ -1,0 +1,67 @@
+#!/bin/bash
+#subscribe to a node with an email
+
+DB="../nodes.db"
+REGEX_EXTENSION="SELECT load_extension('/usr/lib/sqlite3/pcre.so');"
+contact_split=', '
+if [ "$1$2$3" == "" ]; then
+	echo "usage:"
+	echo "$0 [subscribe|unsubscribe] nodename email"
+	exit
+fi
+
+what="$1"; shift
+node="$1"; shift
+email="$1"; shift
+
+regex="^[a-z0-9!#\$%&'*+/=?^_\`{|}~-]+(\.[a-z0-9!#$%&'*+/=?^_\`{|}~-]+)*@([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z0-9]([a-z0-9-]*[a-z0-9])?\$"
+if [[ $email =~ $regex ]] ; then
+  : "email is OK"
+else
+	echo "email $email not OK"
+	exit
+fi
+
+regex="^([a-z0-9_A-Z]|-)+\$"
+if [[ $node =~ $regex ]] ; then
+  : "node is OK"
+else
+	echo "node name $node not OK"
+	exit
+fi
+
+function clear_email(){
+	#echo remove $email from contacts
+	sqlite3 $DB -header "UPDATE nodes set contact=replace(contact, '$email', '') WHERE name = '$node'"
+}
+
+function add_email(){
+	#echo add $email to contacts
+	sqlite3 $DB -header "UPDATE nodes set ignore=0, contact=(contact || '$contact_split$email') WHERE name = '$node'"
+	# cut first "contact_split
+	#sqlite3 $DB -header "$REGEX_EXTENSION UPDATE nodes set contact=REGEXP_REPLACE( contact, '^$contact_split', '' ) WHERE name = '$node'"
+	sqlite3 $DB -header "UPDATE nodes set contact=replace(contact, '$contact_split$contact_split', '$contact_split') WHERE name = '$node'"
+
+}
+
+case "$what" in
+	"subscribe"*)
+		echo Du wirst auf deiner E-Mail Adresse "$email" informiert, wenn der Knoten "'$node'" offline ist
+		clear_email
+		add_email
+	  ;;
+	"unsubscribe")
+		echo Es werden keine benachrichtigungen mehr an die E-Mail Adresse "$email" geschickt, wenn der Knoten "'$node'" offline ist
+		clear_email
+	  ;;
+	*)
+	  echo "usage:"
+		echo "$0 [subscribe|unsubscribe] nodename email"
+		exit
+	  ;;
+esac
+
+echo result:
+sqlite3 ../nodes.db -header "select id, name, contact, lastcontact, ignore, datetime(lastseen, 'unixepoch', 'localtime') from nodes where name = '$node'"
+
+
